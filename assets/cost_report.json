@@ -1,0 +1,246 @@
+{
+  "decisions": [
+    {
+      "seq": 1,
+      "order_id": "ORD-1",
+      "event_type": "order_created",
+      "risk_score": 0.1,
+      "reasons": [
+        "base weight for order_created = 0.10",
+        "order_created establishes expectation only, nothing to reconcile yet"
+      ],
+      "decision": "skip",
+      "llm_calls": []
+    },
+    {
+      "seq": 2,
+      "order_id": "ORD-2",
+      "event_type": "order_created",
+      "risk_score": 0.1,
+      "reasons": [
+        "base weight for order_created = 0.10",
+        "order_created establishes expectation only, nothing to reconcile yet"
+      ],
+      "decision": "skip",
+      "llm_calls": []
+    },
+    {
+      "seq": 3,
+      "order_id": "ORD-4",
+      "event_type": "order_created",
+      "risk_score": 0.1,
+      "reasons": [
+        "base weight for order_created = 0.10",
+        "order_created establishes expectation only, nothing to reconcile yet"
+      ],
+      "decision": "skip",
+      "llm_calls": []
+    },
+    {
+      "seq": 4,
+      "order_id": "ORD-1",
+      "event_type": "payment_processed",
+      "risk_score": 0.7,
+      "reasons": [
+        "base weight for payment_processed = 0.70"
+      ],
+      "decision": "query",
+      "llm_calls": []
+    },
+    {
+      "seq": 5,
+      "order_id": "ORD-3",
+      "event_type": "order_created",
+      "risk_score": 0.1,
+      "reasons": [
+        "base weight for order_created = 0.10",
+        "order_created establishes expectation only, nothing to reconcile yet"
+      ],
+      "decision": "skip",
+      "llm_calls": []
+    },
+    {
+      "seq": 6,
+      "order_id": "ORD-2",
+      "event_type": "inventory_adjusted",
+      "risk_score": 0.5,
+      "reasons": [
+        "base weight for inventory_adjusted = 0.50"
+      ],
+      "decision": "llm_escalate_query",
+      "llm_calls": [
+        {
+          "purpose": "risk_escalation",
+          "input_tokens": 141,
+          "output_tokens": 103,
+          "cost_usd": 0.0005248,
+          "model": "deterministic-local-v1"
+        }
+      ]
+    },
+    {
+      "seq": 7,
+      "order_id": "ORD-2",
+      "event_type": "payment_processed",
+      "risk_score": 0.85,
+      "reasons": [
+        "base weight for payment_processed = 0.70",
+        "second risky event on this order recently -> +0.15"
+      ],
+      "decision": "query",
+      "llm_calls": []
+    },
+    {
+      "seq": 8,
+      "order_id": "ORD-1",
+      "event_type": "shipment_dispatched",
+      "risk_score": 0.9,
+      "reasons": [
+        "base weight for shipment_dispatched = 0.75",
+        "second risky event on this order recently -> +0.15"
+      ],
+      "decision": "query",
+      "llm_calls": []
+    },
+    {
+      "seq": 9,
+      "order_id": "ORD-3",
+      "event_type": "shipment_dispatched",
+      "risk_score": 0.75,
+      "reasons": [
+        "base weight for shipment_dispatched = 0.75"
+      ],
+      "decision": "query",
+      "llm_calls": []
+    },
+    {
+      "seq": 10,
+      "order_id": "ORD-4",
+      "event_type": "order_cancelled",
+      "risk_score": 0.35,
+      "reasons": [
+        "base weight for order_cancelled = 0.35"
+      ],
+      "decision": "llm_escalate_skip",
+      "llm_calls": [
+        {
+          "purpose": "risk_escalation",
+          "input_tokens": 138,
+          "output_tokens": 124,
+          "cost_usd": 0.0006064,
+          "model": "deterministic-local-v1"
+        }
+      ]
+    },
+    {
+      "seq": 11,
+      "order_id": "ORD-4",
+      "event_type": "shipment_dispatched",
+      "risk_score": 0.95,
+      "reasons": [
+        "base weight for shipment_dispatched = 0.75",
+        "shipment dispatched on a cancelled order -> escalated to 0.95"
+      ],
+      "decision": "query",
+      "llm_calls": []
+    },
+    {
+      "seq": 12,
+      "order_id": "ORD-3",
+      "event_type": "payment_processed",
+      "risk_score": 0.85,
+      "reasons": [
+        "base weight for payment_processed = 0.70",
+        "second risky event on this order recently -> +0.15"
+      ],
+      "decision": "query",
+      "llm_calls": []
+    }
+  ],
+  "cycles": [
+    {
+      "cycle_id": 1,
+      "order_ids_flushed": [
+        "ORD-1"
+      ],
+      "warehouse_http_calls": 1,
+      "warehouse_order_lookups": 1,
+      "llm_calls": 0,
+      "llm_input_tokens": 0,
+      "llm_output_tokens": 0,
+      "llm_cost_usd": 0.0,
+      "mismatches_found": 0,
+      "corrections_applied": 0,
+      "within_token_budget": true,
+      "within_query_budget": true
+    },
+    {
+      "cycle_id": 2,
+      "order_ids_flushed": [
+        "ORD-2",
+        "ORD-1"
+      ],
+      "warehouse_http_calls": 1,
+      "warehouse_order_lookups": 2,
+      "llm_calls": 2,
+      "llm_input_tokens": 258,
+      "llm_output_tokens": 220,
+      "llm_cost_usd": 0.0010864,
+      "mismatches_found": 1,
+      "corrections_applied": 1,
+      "within_token_budget": true,
+      "within_query_budget": true
+    },
+    {
+      "cycle_id": 3,
+      "order_ids_flushed": [
+        "ORD-3",
+        "ORD-4"
+      ],
+      "warehouse_http_calls": 1,
+      "warehouse_order_lookups": 2,
+      "llm_calls": 2,
+      "llm_input_tokens": 254,
+      "llm_output_tokens": 241,
+      "llm_cost_usd": 0.0011672,
+      "mismatches_found": 1,
+      "corrections_applied": 1,
+      "within_token_budget": true,
+      "within_query_budget": true
+    },
+    {
+      "cycle_id": 4,
+      "order_ids_flushed": [
+        "ORD-3"
+      ],
+      "warehouse_http_calls": 1,
+      "warehouse_order_lookups": 1,
+      "llm_calls": 0,
+      "llm_input_tokens": 0,
+      "llm_output_tokens": 0,
+      "llm_cost_usd": 0.0,
+      "mismatches_found": 1,
+      "corrections_applied": 1,
+      "within_token_budget": true,
+      "within_query_budget": true
+    }
+  ],
+  "totals": {
+    "events_seen": 12,
+    "events_skipped_no_check": 5,
+    "events_skipped_free_heuristic": 4,
+    "events_skipped_after_llm_reasoning": 1,
+    "events_that_triggered_a_query": 7,
+    "skip_rate_pct": 41.7,
+    "llm_calls": 4,
+    "llm_input_tokens": 512,
+    "llm_output_tokens": 461,
+    "llm_total_tokens": 973,
+    "llm_cost_usd": 0.002254,
+    "warehouse_http_calls": 4,
+    "warehouse_order_lookups": 6,
+    "cycles": 4,
+    "all_cycles_within_token_budget": true,
+    "all_cycles_within_query_budget": true
+  }
+}

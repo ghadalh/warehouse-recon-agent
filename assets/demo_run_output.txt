@@ -1,0 +1,64 @@
+[llm_client] WARNING: could not load the real cl100k_base tokenizer (ProxyError: HTTPSConnectionPool(host='openaipublic.blob.core.windows.net', port=443): Max retries exceeded with url: /encodings/cl100k_base.tiktoken (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))). Falling back to an approximate regex-based token counter. This affects only *this* environment's network access, not the code -- a normal machine with internet access will use the real tokenizer.
+Starting mock warehouse service on http://127.0.0.1:8799 ...
+LLM backend: DeterministicLLM (model=deterministic-local-v1)
+
+Streaming events into the agent
+------------------------------------------------------------------------
+[event  1] order_created        order=ORD-1  risk=0.10  -> SKIP (below 0.3 threshold, no warehouse call, $0)
+[event  2] order_created        order=ORD-2  risk=0.10  -> SKIP (below 0.3 threshold, no warehouse call, $0)
+[event  3] order_created        order=ORD-4  risk=0.10  -> SKIP (below 0.3 threshold, no warehouse call, $0)
+[event  4] payment_processed    order=ORD-1  risk=0.70  -> HIGH RISK, queued for warehouse check (no LLM needed)
+[event  5] order_created        order=ORD-3  risk=0.10  -> SKIP (below 0.3 threshold, no warehouse call, $0)
+           max wait reached (5 events) -> flushing
+           reconcile order=ORD-1: no mismatch, in sync
+[event  6] inventory_adjusted   order=ORD-2  risk=0.50  -> AMBIGUOUS, asked LLM (141+103 tok) -> LLM says QUERY, queued
+[event  7] payment_processed    order=ORD-2  risk=0.85  -> HIGH RISK, queued for warehouse check (no LLM needed)
+[event  8] shipment_dispatched  order=ORD-1  risk=0.90  -> HIGH RISK, queued for warehouse check (no LLM needed)
+           risk >= 0.9 -> flushing immediately
+           reconcile order=ORD-2: no mismatch, in sync
+           reconcile order=ORD-1: MAJOR mismatch on 'shipment_status' (dispatched -> not_dispatched) -> LLM reconciliation plan (117+117 tok), correction applied
+[event  9] shipment_dispatched  order=ORD-3  risk=0.75  -> HIGH RISK, queued for warehouse check (no LLM needed)
+[event 10] order_cancelled      order=ORD-4  risk=0.35  -> AMBIGUOUS, asked LLM (138+124 tok) -> LLM says SKIP, no warehouse call
+[event 11] shipment_dispatched  order=ORD-4  risk=0.95  -> HIGH RISK, queued for warehouse check (no LLM needed)
+           risk >= 0.9 -> flushing immediately
+           reconcile order=ORD-3: no mismatch, in sync
+           reconcile order=ORD-4: MAJOR mismatch on 'shipment_status' (cancelled -> dispatched) -> LLM reconciliation plan (116+117 tok), correction applied
+[event 12] payment_processed    order=ORD-3  risk=0.85  -> HIGH RISK, queued for warehouse check (no LLM needed)
+           reconcile order=ORD-3: MINOR mismatch on 'payment_settled_cents' (8800 -> 8750) -> auto-healed, no LLM
+------------------------------------------------------------------------
+
+CORRECTIONS APPLIED
+------------------------------------------------------------------------
+order=ORD-1 field=shipment_status: 'dispatched' -> 'not_dispatched'  [LLM-reviewed]
+    rationale: Warehouse record disagrees with system belief on a fulfillment-critical field. Given the size and direction of the discrepancy, the safest corrective action is to treat the warehouse export as ground truth, patch the live system's belief to match it, and emit a correction record for audit rather than silently overwriting history. Severity and recommended action are attached as structured output.
+order=ORD-4 field=shipment_status: 'cancelled' -> 'dispatched'  [LLM-reviewed]
+    rationale: Warehouse record disagrees with system belief on a fulfillment-critical field. Given the size and direction of the discrepancy, the safest corrective action is to treat the warehouse export as ground truth, patch the live system's belief to match it, and emit a correction record for audit rather than silently overwriting history. Severity and recommended action are attached as structured output.
+order=ORD-3 field=payment_settled_cents: 8800 -> 8750  [auto-healed]
+    rationale: Minor drift (System expects 8800c settled; warehouse export shows 8750c (delta=50c).) auto-healed deterministically; below manual-review threshold.
+
+========================================================================
+COST REPORT
+========================================================================
+Events seen:                  12
+  -> skipped, free heuristic (0 tokens, 0 calls): 4
+  -> skipped, after LLM reasoning ($ tokens spent to avoid a call): 1
+  -> total skipped:                               5 (41.7%)
+  -> triggered a warehouse query:                 7
+LLM calls made:                4
+LLM tokens (in/out/total):     512 / 461 / 973
+LLM cost (USD, illustrative):  $0.002254
+Warehouse HTTP calls:          4
+Warehouse order lookups:       6
+Reconciliation cycles:         4
+All cycles within 5000-token budget:   True
+All cycles within 10-query budget:      True
+------------------------------------------------------------------------
+cycle 1: orders=['ORD-1'] http_calls=1 lookups=1 tokens=0 mismatches=0 corrections=0 budget_ok=True
+cycle 2: orders=['ORD-2', 'ORD-1'] http_calls=1 lookups=2 tokens=478 mismatches=1 corrections=1 budget_ok=True
+cycle 3: orders=['ORD-3', 'ORD-4'] http_calls=1 lookups=2 tokens=495 mismatches=1 corrections=1 budget_ok=True
+cycle 4: orders=['ORD-3'] http_calls=1 lookups=1 tokens=0 mismatches=1 corrections=1 budget_ok=True
+========================================================================
+
+Full machine-readable cost report written to assets/cost_report.json
+
+BUDGET COMPLIANCE (<=5000 tokens/cycle, <=10 warehouse queries/cycle): PASS
